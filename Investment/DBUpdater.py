@@ -80,7 +80,11 @@ class DBUpdater:
                 print('')              
 
     def read_naver(self, code, company, pages_to_fetch):
-        """네이버에서 주식 시세를 읽어서 데이터프레임으로 반환"""
+        """네이버에서 주식 시세를 읽어서 데이터프레임으로 반환
+            - code              : 회사 번호 -> finance.naver.com에서 쓰일 값
+            - company           : 회사 이름 -> terminal에서 표기용
+            - pages_to_fetch    : 총 몇 page를 crawling 할 것인가?
+        """
         try:
             url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")

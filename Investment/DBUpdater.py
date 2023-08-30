@@ -79,12 +79,21 @@ class DBUpdater:
                 self.conn.commit()
                 print('')              
 
-    def read_naver(self, code, company, pages_to_fetch):
+    def read_naver(self, code, company, pages_to_fetch, skip=25750):
         """네이버에서 주식 시세를 읽어서 데이터프레임으로 반환
             - code              : 회사 번호 -> finance.naver.com에서 쓰일 값
             - company           : 회사 이름 -> terminal에서 표기용
             - pages_to_fetch    : 총 몇 page를 crawling 할 것인가?
+            - skip              : 처음 다운받을 경우, 다시 다운받을 때 회사코드값 넣으면 그 전까지 skip함.
         """
+        tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+        # 중간에 다운받다가 끊을 경우, read_naver함수의 skip값에 끊기 직전의 회사 코드번호 입력시 전의 data 모두 skip.
+        if int(code) < skip:
+            print('[{}] {} ({}) :  is skipped..'.
+                    format(tmnow, company, code), end="\n")
+            return None
+        
         try:
             url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
@@ -92,12 +101,13 @@ class DBUpdater:
             
             if pgrr is None:
                 return None
-            
+                
             s = str(pgrr.a["href"]).split('=')
             lastpage = s[-1] 
             df = pd.DataFrame()
-            pages = max(int(lastpage), pages_to_fetch)                  # 처음 실행시에만 max로 설정. 이후는 min으로 설정해도 무리 없음.
-            
+            pages = max(int(lastpage), pages_to_fetch)                  
+            # 처음 실행시에만 max로 설정. 이후는 min으로 설정해도 무리 없음.
+            # [주의] : 처음 Database 다운받을 경우. 정말 오래걸리니 잘때 하는 것을 추천함.
             for page in range(1, pages + 1):
                 pg_url = '{}&page={}'.format(url, page)
 
@@ -105,7 +115,7 @@ class DBUpdater:
                     headers={'User-agent': 'Mozilla/5.0'}).text)[0]
                 df = pd.concat([df, new_data], ignore_index=True)
             
-                tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
+                
                 print('[{}] {} ({}) : {:04d}/{:04d} pages are downloading...'.
                     format(tmnow, company, code, page, pages), end="\r")
                 
@@ -117,9 +127,35 @@ class DBUpdater:
         
         except Exception as e:
             print('Exception occured :', str(e))
+
+            exception_data = {
+                'code': code,
+                'company': company,
+                'pages_to_fetch': pages_to_fetch
+            }
+
+            try:
+                with open('exception_data.json', 'r') as json_file:
+                    existing_data = json.load(json_file)
+                    existing_data['data'].append(exception_data)
+            except FileNotFoundError:
+                existing_data = {'data': [exception_data]}
+            
+            with open('exception_data.json', 'w') as json_file:
+                json.dump(existing_data, json_file)
             return None
         
         return df
+    
+    def naver_error_reDownload(self):
+        """
+        read_naver에서 오류난 부분을 'exception_data.json'에 저장하는데, 
+        
+        그 부분에 해당하는 것만 다시 실행하는 과정.
+        
+        실행 모두 완료되면, 그에 따라서 exception_data.json에서 값 삭제함.
+        """
+
 
     def replace_into_db(self, df, num, code, company):
         """네이버에서 읽어온 주식 시세를 DB에 REPLACE"""
@@ -131,7 +167,7 @@ class DBUpdater:
                 curs.execute(sql)
             self.conn.commit()
             
-            print('[{}] #{:04d} {} ({}) : {} rows > REPLACE INTO daily_price [OK]'.format(datetime.now().strftime('%Y-%m-%d%H:%M'), num+1, company, code, len(df)))
+            print('[{}] # {:04d} - {} ({}) : {} rows > REPLACE INTO daily_price [OK]'.format(datetime.now().strftime('%Y-%m-%d %H:%M'), num+1, company, code, len(df)))
 
     def update_daily_price(self, pages_to_fetch):
         """KRX 상장법인의 주식 시세를 네이버로부터 읽어서 DB에 업데이트"""  

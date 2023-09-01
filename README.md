@@ -33,9 +33,38 @@ python <file 경로 설정>\DBUpdater.py
 
 ## 분석 기법 example
 
-1. 현대 포트폴리오 이론 : Portfolio selection - by.Harry Max Markowitz(1952)
->평균-분산 최적화(mean-variance optimization, MVO)는 예상 수익률과 리스크의 상관관계를 활용해 포트폴리오를 최적화하는 기법.
->- 수익률과 표준편차
+### 1. 현대 포트폴리오 이론 : Portfolio selection - by.Harry Max Markowitz(1952)
+-------
+평균-분산 최적화(mean-variance optimization, MVO)는 예상 수익률과 리스크의 상관관계를 활용해 포트폴리오를 최적화하는 기법.
+- 수익률과 표준편차
 <br>
->- 효율적 투자선(Efficiant Frontier) : [Code - 몬테카를로_시뮬레이션](https://github.com/Eligae/Investment/blob/main/%EC%97%B0%EC%8A%B5/%EB%AA%AC%ED%85%8C%EC%B9%B4%EB%A5%BC%EB%A1%9C_%EC%8B%9C%EB%AE%AC%EB%A0%88%EC%9D%B4%EC%85%98.py)
+- 효율적 투자선(Efficiant Frontier) : [Code - 몬테카를로_시뮬레이션](https://github.com/Eligae/Investment/blob/main/%EC%97%B0%EC%8A%B5/%EB%AA%AC%ED%85%8C%EC%B9%B4%EB%A5%BC%EB%A1%9C_%EC%8B%9C%EB%AE%AC%EB%A0%88%EC%9D%B4%EC%85%98.py)
 
+<img src='./readme_img/Efficient_Frontier.png' width="40%" height="40%"/>
+
+
+### 2. 샤프 지수와 포트폴리오 최적화
+-------
+리스크를 최소화하고, 수익률은 최대화하는 포트폴리오 -> **샤프 지수(Sharp Ratio)**
+
+샤프지수는 측정된 위험 단위당 수익률을 계산함. (수익률의 표준편차와 다름!)
+
+$샤프지수 = {포트폴리오 예상 수익률 - 무위험률 \over 수익률의 표준편차}$
+    
+<img src='./readme_img/Portfolio_Optimization.png' width="40%" height="40%"/>
+
+- ★ : 샤프 지수가 가장 큰 포트폴리오
+- X : 리스크가 제일 작은 포트폴리오
+
+
+### 3. 볼린저 밴드 지표
+-------
+주가의 20일 이동 평균선 기준으로, 상대적인 고점을 나타내는 상단 밴드와 상대적인 저점을 나타내는 하단 밴드로 구성됨.
+
+주가가 상단 밴드 근처에 있을 수록, 상대적인 고점에, 주가가 하단 밴드 근처에 있을 술록 상대적인 저점에 있다고 판별가능.
+
+밴드폭이 좁을 수록 주가 변동성이 작고, 밴드폭이 넓을 수록 변동성이 크다는 것을 나타냄.
+
+#### <공식>
+- $상단 볼린저 밴드 = 중간 볼린저 밴드 + (2 \times 표준편차)$
+- $중간 볼린저 밴드 = 종가의 20일 이동평균$

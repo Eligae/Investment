@@ -2,6 +2,8 @@
 매일 17 : 00 에 실행하도록 설정하기
 
 ## DBUpdater.bat 설정
+
+
 ```txt
 python <file 경로 설정>\DBUpdater.py
 ```

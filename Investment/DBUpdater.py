@@ -79,7 +79,7 @@ class DBUpdater:
                 self.conn.commit()
                 print('')              
 
-    def read_naver(self, code, company, pages_to_fetch, skip=25750):
+    def read_naver(self, code, company, pages_to_fetch, skip=0):
         """네이버에서 주식 시세를 읽어서 데이터프레임으로 반환
             - code              : 회사 번호 -> finance.naver.com에서 쓰일 값
             - company           : 회사 이름 -> terminal에서 표기용
@@ -89,7 +89,7 @@ class DBUpdater:
         tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
 
         # 중간에 다운받다가 끊을 경우, read_naver함수의 skip값에 끊기 직전의 회사 코드번호 입력시 전의 data 모두 skip.
-        if int(code) < skip:
+        if int(code) < skip:    
             print('[{}] {} ({}) :  is skipped..'.
                     format(tmnow, company, code), end="\n")
             return None
@@ -105,7 +105,7 @@ class DBUpdater:
             s = str(pgrr.a["href"]).split('=')
             lastpage = s[-1] 
             df = pd.DataFrame()
-            pages = max(int(lastpage), pages_to_fetch)                  
+            pages = min(int(lastpage), pages_to_fetch)                  
             # 처음 실행시에만 max로 설정. 이후는 min으로 설정해도 무리 없음.
             # [주의] : 처음 Database 다운받을 경우. 정말 오래걸리니 잘때 하는 것을 추천함.
             for page in range(1, pages + 1):
@@ -155,6 +155,9 @@ class DBUpdater:
         
         실행 모두 완료되면, 그에 따라서 exception_data.json에서 값 삭제함.
         """
+
+        # with open('exception_data.json', 'r') as exceptionData:
+            
 
 
     def replace_into_db(self, df, num, code, company):

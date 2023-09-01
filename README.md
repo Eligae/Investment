@@ -30,3 +30,11 @@ python <file 경로 설정>\DBUpdater.py
 3. getFinanceNews.py : [Naver 금융 뉴스](https://finance.naver.com/news/)에서 실시간 부분에서 뉴스 제목, 내용 Crawling
 4. konlpy_News.py : getFinanceNews.py에서 얻어온 News 내용 분석, MariaDB에 저장
 5. var.py : MariaDB, request headers, url 등 정보 저장 용도 
+
+## 분석 기법 example
+
+1. 현대 포트폴리오 이론 : Portfolio selection - by.Harry Max Markowitz(1952)
+>평균-분산 최적화(mean-variance optimization, MVO)는 예상 수익률과 리스크의 상관관계를 활용해 포트폴리오를 최적화하는 기법.
+>- 수익률과 표준편차
+<br>
+>- 효율적 투자선(Efficiant Frontier) : [Code - 몬테카를로_시뮬레이션]()

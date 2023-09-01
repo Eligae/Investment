@@ -1,6 +1,14 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('..')
+
+import os
+current_directory = os.getcwd()
+print(current_directory)
+
+
 from Investment import Analyzer
 
 mk = Analyzer.MarketDB()

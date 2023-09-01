@@ -37,4 +37,5 @@ python <file 경로 설정>\DBUpdater.py
 >평균-분산 최적화(mean-variance optimization, MVO)는 예상 수익률과 리스크의 상관관계를 활용해 포트폴리오를 최적화하는 기법.
 >- 수익률과 표준편차
 <br>
->- 효율적 투자선(Efficiant Frontier) : [Code - 몬테카를로_시뮬레이션]()
+>- 효율적 투자선(Efficiant Frontier) : [Code - 몬테카를로_시뮬레이션](https://github.com/Eligae/Investment/blob/main/%EC%97%B0%EC%8A%B5/%EB%AA%AC%ED%85%8C%EC%B9%B4%EB%A5%BC%EB%A1%9C_%EC%8B%9C%EB%AE%AC%EB%A0%88%EC%9D%B4%EC%85%98.py)
+

@@ -18,3 +18,13 @@ python <file 경로 설정>\DBUpdater.py
 6. ```DBUPDATER```라는 문자열 값으로 **DBUpdater.bat**경로 지정
 
 자동으로 실행 적용 완료
+
+## 예상
+```Investment/```에서 사용할 함수(Library) 작성중..
+
+1. Analyzer.py : MariaDB에서 Data 호출 용
+
+2. DBUpdater.py : [Naver 금융](https://finance.naver.com)에서 회사 별 주식 등락 폭 등 다양한 정보 Crawling이후, MariaDB에 저장
+3. getFinanceNews.py : [Naver 금융 뉴스](https://finance.naver.com/news/)에서 실시간 부분에서 뉴스 제목, 내용 Crawling
+4. konlpy_News.py : getFinanceNews.py에서 얻어온 News 내용 분석, MariaDB에 저장
+5. var.py : MariaDB, request headers, url 등 정보 저장 용도 

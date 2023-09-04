@@ -1,5 +1,4 @@
 import pandas as pd
-import pymysql
 from datetime import datetime, timedelta
 import re
 from sqlalchemy import create_engine

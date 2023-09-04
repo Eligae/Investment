@@ -68,3 +68,14 @@ $샤프지수 = {포트폴리오 예상 수익률 - 무위험률 \over 수익률
 #### <공식>
 - $상단 볼린저 밴드 = 중간 볼린저 밴드 + (2 \times 표준편차)$
 - $중간 볼린저 밴드 = 종가의 20일 이동평균$
+
+# 오류(23.09.04)
+이유는 모르겠지만, 23.09.01 이후부터 
+```python
+url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
+```
+형식이 막힌듯 보임. 
+```python
+url = f"https://finance.naver.com/item/sise.naver?code={code}"
+```
+에서 하단의 '일별시세' 탭에서 가져와야 할 듯 한데, javascript로 쓰인 동적 사이트라 크롤링이 쉽지 않을듯. 

@@ -17,6 +17,7 @@ class getNews:
         날짜를 받아와서 해당 날에 대한 finance.naver의 주소 구하고, 크롤링 실행
         return DataFrame
         """
+        
 
     def getFormattedDate(self, date):
         """

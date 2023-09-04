@@ -95,10 +95,12 @@ class DBUpdater:
             return None
         
         try:
+            # 23.09.04 기준 '일별시세' 탭 없어짐. 18
             url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
+            print(url)
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
             pgrr = html.find("td", class_="pgRR")
-            
+            print(pgrr)
             if pgrr is None:
                 return None
                 
@@ -175,12 +177,22 @@ class DBUpdater:
     def update_daily_price(self, pages_to_fetch):
         """KRX 상장법인의 주식 시세를 네이버로부터 읽어서 DB에 업데이트"""  
         for idx, code in enumerate(self.codes):
-            df = self.read_naver(code, self.codes[code], pages_to_fetch)
+            df = self.read_naver(code=code, company=self.codes[code], pages_to_fetch=pages_to_fetch)
             
             if df is None:
                 continue
             
-            self.replace_into_db(df, idx, code, self.codes[code])            
+            self.replace_into_db(df, idx, code, self.codes[code])     
+
+    # def getCompanyItem(self, code)       
+    #     url = f'https://finance.naver.com/item/main.naver?code={code}'
+    #     tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    #     try:
+    #         html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
+    #         item = html.find("")
+
+
 
     def execute_daily(self):
         """실행 즉시 및 매일 오후 다섯시에 daily_price 테이블 업데이트"""
@@ -197,6 +209,7 @@ class DBUpdater:
                 config = {'pages_to_fetch': 1}
                 json.dump(config, out_file)
         
+        print("Ready to get daily price from finance.naver.com...")
         self.update_daily_price(pages_to_fetch)
 
         tmnow = datetime.now()

@@ -96,8 +96,7 @@ class DBUpdater:
         
         try:
             # 23.09.04 기준 '일별시세' 탭 없어짐. 18
-            url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
-            print(url)
+            url = f"https://finance.naver.com/item/sise_day.nhn?code={code}&page=1"
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
             pgrr = html.find("td", class_="pgRR")
             print(pgrr)

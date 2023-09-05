@@ -21,22 +21,24 @@ class getNews:
         """소멸자 : pass"""
         pass
     
-    def getNewsByDate(self, date=None):
+    def getNewsByDate(self, date=None) -> pd.DataFrame: 
         """
         - date : format as '20230901'. then, url = url + '&date={date}'
+
         날짜를 받아와서 해당 날에 대한 finance.naver의 주소 구하고, 크롤링 실행
-        return DataFrame
         """
         if date == None:
             date = self.getFormattedDate(date=date)
 
         today = datetime.today().strftime('%Y%m%d')
-        links_ = []
-        titles_ = []
-        date_ = []
-        newspaper_ = []
+        NewsDF = pd.DataFrame(columns=['link', 'title', 'date', 'newspaper'])
         
         while today >= date:
+            links_day= []
+            titles_day = []
+            date_day = []
+            newspaper_day = []
+
             try:
                 html = BeautifulSoup(requests.get(url=f"{var.NEWS_URL}&date={date}", headers=var.HEADERS).text, 'lxml')
                 pgrr = html.find('td', class_='pgRR')
@@ -53,18 +55,20 @@ class getNews:
                     news_dt = html.find_all('dt', class_='articleSubject')
                     # news summary, newspaper company name
                     news_summary = html.find_all('dd', class_='articleSummary')
-                    print(f'[{date}] {page}/{lastpage} downloading..')
+                    print(f'[{date}] {page}/{lastpage} downloading..\r')
 
                     for tag in news_dd+news_dt:
                         a_tag = tag.find('a')
-                        links_.append(a_tag['href'])
-                        titles_.append(a_tag['title'])
-                        date_.append(date)
+                        links_day.append(a_tag['href'])
+                        titles_day.append(a_tag['title'])
+                        date_day.append(date)
                     
                     for newspaper in news_summary:
                         span_class = newspaper.find('span')
-                        newspaper_.append(span_class.text)
-                date = (datetime.strptime(date, '%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
+                        newspaper_day.append(span_class.text)
+                    
+                    day_DF = pd.DataFrame({'link': links_day, 'title': titles_day, 'date': date_day, 'newspaper': newspaper_day})
+                    day_DF = day_DF.drop_duplicates(subset='title', keep='first')
             
             # for Exceptions, make json file to know where the problem has occured
             except Exception as e:
@@ -83,12 +87,13 @@ class getNews:
                     existing_data = {'data': [exception_data]}
                     with open('exception_news.json', 'w') as json_file:
                         json.dump(existing_data, json_file)
+            
+            NewsDF = pd.concat([NewsDF, day_DF], ignore_index=True)
+            date = (datetime.strptime(date, '%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
 
-        # with list of data, create Dataframe in order to save into Maria DB
-        NewsDF = pd.DataFrame({'link' : links_, 'title' : titles_, 'date' : date_, 'newspaper' : newspaper_})
         return NewsDF
     
-    def getridOfTitles(self, df):
+    def getridOfTitles(self, df) -> pd.DataFrame:
         """
         From 
 
@@ -99,7 +104,7 @@ class getNews:
         """
 
 
-    def getFormattedDate(self, date=None):
+    def getFormattedDate(self, date=None) -> datetime:
         """
         - date : format 안된 date를 getNewsByDate에서 실행할 수 있게 적절히 변환.
 
@@ -121,4 +126,4 @@ class getNews:
         
 if __name__ == "__main__":
     getNewsActivate = getNews()
-    getNewsActivate.getNewsByDate(date='20230831')
+    getNewsActivate.getNewsByDate(date='20230830')

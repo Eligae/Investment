@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-import requests, json
+import requests, json, pymysql
 import pandas as pd
 from datetime import datetime, timedelta
 import var
@@ -8,7 +8,15 @@ class getNews:
     def __init__(self):
         """생성자 : 기본 url 주소를 받아옴"""
         self.url = var.NEWS_URL
-    
+        self.conn = pymysql.connect(host='localhost', user='root', password=var.PASSWORD, db='Investment_', charset='utf8')
+        
+        # with self.conn.cursor() as curs:
+        #     sql = """
+        #     CREATE TABLE IF NOT EXISTS news_title (
+        #         code
+        #     )
+        #     """
+
     def __del__(self):
         """소멸자 : pass"""
         pass
@@ -30,7 +38,7 @@ class getNews:
         
         while today >= date:
             try:
-                html = BeautifulSoup(requests.get(url=f"{var.NEWS_URL}?&date={date}", headers=var.HEADERS).text, 'lxml')
+                html = BeautifulSoup(requests.get(url=f"{var.NEWS_URL}&date={date}", headers=var.HEADERS).text, 'lxml')
                 pgrr = html.find('td', class_='pgRR')
                 if pgrr is None:
                     return None
@@ -57,7 +65,8 @@ class getNews:
                         span_class = newspaper.find('span')
                         newspaper_.append(span_class.text)
                 date = (datetime.strptime(date, '%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
-                
+            
+            # for Exceptions, make json file to know where the problem has occured
             except Exception as e:
                 print('Exception occured :', str(e))
 
@@ -75,11 +84,21 @@ class getNews:
                     with open('exception_news.json', 'w') as json_file:
                         json.dump(existing_data, json_file)
 
-            
-        
-        NewsDF = pd.DataFrame({'Link' : links_, 'Title' : titles_, 'Date' : date_, 'Newspaper' : newspaper_})
+        # with list of data, create Dataframe in order to save into Maria DB
+        NewsDF = pd.DataFrame({'link' : links_, 'title' : titles_, 'date' : date_, 'newspaper' : newspaper_})
         return NewsDF
     
+    def getridOfTitles(self, df):
+        """
+        From 
+
+        ```python 
+        def getNewsByDate
+        ```
+        get ```NewsDF```, 필요없는 내용 삭제하는 함수
+        """
+
+
     def getFormattedDate(self, date=None):
         """
         - date : format 안된 date를 getNewsByDate에서 실행할 수 있게 적절히 변환.

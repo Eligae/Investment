@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
-import requests
+import requests, json
+import pandas as pd
+from datetime import datetime, timedelta
 import var
 
 class getNews:
@@ -11,19 +13,86 @@ class getNews:
         """소멸자 : pass"""
         pass
     
-    def getNewsByDate(self, date):
+    def getNewsByDate(self, date=None):
         """
         - date : format as '20230901'. then, url = url + '&date={date}'
         날짜를 받아와서 해당 날에 대한 finance.naver의 주소 구하고, 크롤링 실행
         return DataFrame
         """
-        
+        if date == None:
+            date = self.getFormattedDate(date=date)
 
-    def getFormattedDate(self, date):
+        today = datetime.today().strftime('%Y%m%d')
+        links_ = []
+        titles_ = []
+        date_ = []
+        newspaper_ = []
+        
+        while today >= date:
+            try:
+                html = BeautifulSoup(requests.get(url=f"{var.NEWS_URL}?&date={date}", headers=var.HEADERS).text, 'lxml')
+                pgrr = html.find('td', class_='pgRR')
+                if pgrr is None:
+                    return None
+                s = str(pgrr.a['href']).split('=')
+                lastpage = int(s[-1])
+
+                for page in range(1, lastpage+1):
+                    pg_url = f'{var.NEWS_URL}&date={date}&page={page}'
+                    html = BeautifulSoup(requests.get(url=pg_url, headers=var.HEADERS).text,'lxml', from_encoding='utf-8')
+                    # news link, title
+                    news_dd = html.find_all('dd', class_='articleSubject')
+                    news_dt = html.find_all('dt', class_='articleSubject')
+                    # news summary, newspaper company name
+                    news_summary = html.find_all('dd', class_='articleSummary')
+                    print(f'[{date}] {page}/{lastpage} downloading..')
+
+                    for tag in news_dd+news_dt:
+                        a_tag = tag.find('a')
+                        links_.append(a_tag['href'])
+                        titles_.append(a_tag['title'])
+                        date_.append(date)
+                    
+                    for newspaper in news_summary:
+                        span_class = newspaper.find('span')
+                        newspaper_.append(span_class.text)
+                date = (datetime.strptime(date, '%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
+                
+            except Exception as e:
+                print('Exception occured :', str(e))
+
+                exception_data = {
+                    'date': date,
+                    'error_code':e
+                }
+
+                try:
+                    with open('exception_news.json', 'r') as json_file:
+                        existing_data = json.load(json_file)
+                        existing_data['data'].append(exception_data)
+                except FileNotFoundError:
+                    existing_data = {'data': [exception_data]}
+                    with open('exception_news.json', 'w') as json_file:
+                        json.dump(existing_data, json_file)
+
+            
+        
+        NewsDF = pd.DataFrame({'Link' : links_, 'Title' : titles_, 'Date' : date_, 'Newspaper' : newspaper_})
+        return NewsDF
+    
+    def getFormattedDate(self, date=None):
         """
         - date : format 안된 date를 getNewsByDate에서 실행할 수 있게 적절히 변환.
+
+        None일 경우, 오늘의 날짜로 변경
+
         return date(string)
         """
+        if date == None:
+            today = (datetime.today()).strftime('%Y%m%d')
+            return today
+
+        return date   
     
     def activate(self, date=0):
         """
@@ -33,4 +102,4 @@ class getNews:
         
 if __name__ == "__main__":
     getNewsActivate = getNews()
-    getNews.activate()
+    getNewsActivate.getNewsByDate(date='20230831')

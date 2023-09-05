@@ -142,9 +142,9 @@ class DBUpdater:
             except FileNotFoundError:
                 existing_data = {'data': [exception_data]}
             
-            with open('exception_data.json', 'w') as json_file:
-                json.dump(existing_data, json_file)
-            return None
+                with open('exception_data.json', 'w') as json_file:
+                    json.dump(existing_data, json_file)
+                return None
         
         return df
     

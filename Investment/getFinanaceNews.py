@@ -14,9 +14,9 @@ class getNews:
 
     def __del__(self):
         """소멸자 : pass"""
-        self.engine.dispose()
+        # self.engine.dispose()
     
-    def getNewsByDate(self, date=None) -> pd.DataFrame: 
+    def getNewsByDate(self, date=None, end_date=None) -> pd.DataFrame: 
         """
         - date : format as '20230901'. then, url = url + '&date={date}'
 
@@ -24,11 +24,11 @@ class getNews:
         """
         if date == None:
             date = self.getFormattedDate(date=date)
-
-        today = datetime.today().strftime('%Y%m%d')
+        if end_date == None:
+            end_date = datetime.today().strftime('%Y%m%d')
         NewsDF = pd.DataFrame(columns=['article_id', 'office_id', 'title', 'date', 'page', 'newspaper'])
         
-        while today >= date:
+        while end_date >= date:
             titles_day = []
             date_day = []
             newspaper_day = []
@@ -46,13 +46,13 @@ class getNews:
 
                 for page in range(1, lastpage+1):
                     pg_url = f'{var.NEWS_URL}&date={date}&page={page}'
-                    html = BeautifulSoup(requests.get(url=pg_url, headers=var.HEADERS).text,'lxml', from_encoding='utf-8')
+                    html = BeautifulSoup(requests.get(url=pg_url, headers=var.HEADERS).text,'lxml') #from_encoding='utf-8')
                     # news link, title
                     news_dd = html.find_all('dd', class_='articleSubject')
                     news_dt = html.find_all('dt', class_='articleSubject')
                     # news summary, newspaper company name
                     news_summary = html.find_all('dd', class_='articleSummary')
-                    print(f'[{date:02d}] {page:02d}/{lastpage} downloading...', end='\r')
+                    print(f'[{date}] {int(page):02d}/{int(lastpage):02d} downloading...', end='\r')
 
                     for tag in news_dd+news_dt:
                         a_tag = tag.find('a')
@@ -77,29 +77,34 @@ class getNews:
                     
                     day_DF = pd.DataFrame({'article_id':article_id_day, 'office_id': office_id_day, 'title': titles_day, 'date': date_day, 'page': page_day, 'newspaper': newspaper_day})
                     day_DF = day_DF.drop_duplicates(subset='title', keep='first')
-                    day_DF.dropna()
-            
+          
             # for Exceptions, make json file to know where the problem has occured
             except Exception as e:
                 print('Exception occured :', str(e))
-
                 exception_data = {
                     'date': date,
-                    'error_code':e
+                    'error_code':str(e)
                 }
 
                 try:
                     with open('exception_news.json', 'r') as json_file:
                         existing_data = json.load(json_file)
                         existing_data['data'].append(exception_data)
+                    
+                    with open('exception_news.json', 'w') as json_file:
+                        json.dump(existing_data, json_file)
+
                 except FileNotFoundError:
                     existing_data = {'data': [exception_data]}
                     with open('exception_news.json', 'w') as json_file:
                         json.dump(existing_data, json_file)
-            
+
             NewsDF = pd.concat([NewsDF, day_DF], ignore_index=True)
             date = (datetime.strptime(date, '%Y%m%d') + timedelta(days=1)).strftime('%Y%m%d')
 
+        # to check the structure & values of the DataFrame : NewsDF...
+        # NewsDF.to_csv('news_data_re.csv', encoding='utf-8', index=False)
+        print()
         return NewsDF
     
     def getridOfTitles(self, df) -> pd.DataFrame:
@@ -134,4 +139,4 @@ class getNews:
         
 if __name__ == "__main__":
     getNewsActivate = getNews()
-    getNewsActivate.getNewsByDate(date='20230830')
+    getNewsActivate.getNewsByDate(date=None)

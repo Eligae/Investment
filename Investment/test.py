@@ -1,21 +1,27 @@
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
+url = '/news/news_read.naver?article_id=0007028727&office_id=421&mode=LSS2D&type=0&section_id=101&section_id2=258&section_id3=&date=20230905&page=23'
 
-# 크롬 드라이버로 웹 페이지 열기
-driver = webdriver.Chrome()
-driver.get("https://finance.naver.com/item/sise.naver?code=005930")
+# URL 문자열을 & 문자를 기준으로 분할합니다.
+url = url.split('?')[-1]
+params = url.split('&')
 
-try:
-    wrapper = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CLASS_NAME, 'pgRR'))
-    )
-    link_element = wrapper.find_element_by_tag_name('a')
-    link = link_element.get_attribute('href')
-    print(link)
-except TimeoutException:
-    print("time out!")
+# 분할된 문자열에서 필요한 값을 추출합니다.
+article_id = None
+office_id = None
+date = None
+page = None
 
-driver.quit()
+for param in params:
+    key, value = param.split('=')
+    if key == 'article_id':
+        article_id = value
+    elif key == 'office_id':
+        office_id = value
+    elif key == 'date':
+        date = value
+    elif key == 'page':
+        page = value
+
+print("article_id:", article_id)
+print("office_id:", office_id)
+print("date:", date)
+print("page:", page)

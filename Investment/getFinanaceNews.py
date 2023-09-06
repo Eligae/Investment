@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
-import requests, json, pymysql
+import requests, json
 import pandas as pd
+from sqlalchemy import create_engine
 from datetime import datetime, timedelta
 import var
 
@@ -8,18 +9,12 @@ class getNews:
     def __init__(self):
         """생성자 : 기본 url 주소를 받아옴"""
         self.url = var.NEWS_URL
-        self.conn = pymysql.connect(host='localhost', user='root', password=var.PASSWORD, db='Investment_', charset='utf8')
-        
-        # with self.conn.cursor() as curs:
-        #     sql = """
-        #     CREATE TABLE IF NOT EXISTS news_title (
-        #         code
-        #     )
-        #     """
+        # db_url = f'mysql+pymysql://root:{var.PASSWORD}@localhost/Investment_?charset=utf8'
+        # self.engine = create_engine(db_url) 
 
     def __del__(self):
         """소멸자 : pass"""
-        pass
+        self.engine.dispose()
     
     def getNewsByDate(self, date=None) -> pd.DataFrame: 
         """
@@ -31,13 +26,15 @@ class getNews:
             date = self.getFormattedDate(date=date)
 
         today = datetime.today().strftime('%Y%m%d')
-        NewsDF = pd.DataFrame(columns=['link', 'title', 'date', 'newspaper'])
+        NewsDF = pd.DataFrame(columns=['article_id', 'office_id', 'title', 'date', 'page', 'newspaper'])
         
         while today >= date:
-            links_day= []
             titles_day = []
             date_day = []
             newspaper_day = []
+            article_id_day = []
+            office_id_day = []
+            page_day = []
 
             try:
                 html = BeautifulSoup(requests.get(url=f"{var.NEWS_URL}&date={date}", headers=var.HEADERS).text, 'lxml')
@@ -55,20 +52,32 @@ class getNews:
                     news_dt = html.find_all('dt', class_='articleSubject')
                     # news summary, newspaper company name
                     news_summary = html.find_all('dd', class_='articleSummary')
-                    print(f'[{date}] {page}/{lastpage} downloading..\r')
+                    print(f'[{date:02d}] {page:02d}/{lastpage} downloading...', end='\r')
 
                     for tag in news_dd+news_dt:
                         a_tag = tag.find('a')
-                        links_day.append(a_tag['href'])
                         titles_day.append(a_tag['title'])
                         date_day.append(date)
-                    
+
+                        link = a_tag['href'].split('?')[-1]
+                        params = link.split('&')
+                        for param in params:
+                            key, value = param.split('=')
+                            if key == 'article_id':
+                                article_id_day.append(value)
+                            elif key == 'office_id':
+                                office_id_day.append(value)
+                        page_day.append(page)
+
                     for newspaper in news_summary:
                         span_class = newspaper.find('span')
                         newspaper_day.append(span_class.text)
                     
-                    day_DF = pd.DataFrame({'link': links_day, 'title': titles_day, 'date': date_day, 'newspaper': newspaper_day})
+                    
+                    
+                    day_DF = pd.DataFrame({'article_id':article_id_day, 'office_id': office_id_day, 'title': titles_day, 'date': date_day, 'page': page_day, 'newspaper': newspaper_day})
                     day_DF = day_DF.drop_duplicates(subset='title', keep='first')
+                    day_DF.dropna()
             
             # for Exceptions, make json file to know where the problem has occured
             except Exception as e:
@@ -104,7 +113,7 @@ class getNews:
         """
 
 
-    def getFormattedDate(self, date=None) -> datetime:
+    def getFormattedDate(self, date=None) -> str:
         """
         - date : format 안된 date를 getNewsByDate에서 실행할 수 있게 적절히 변환.
 
@@ -115,7 +124,6 @@ class getNews:
         if date == None:
             today = (datetime.today()).strftime('%Y%m%d')
             return today
-
         return date   
     
     def activate(self, date=0):

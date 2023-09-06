@@ -9,13 +9,24 @@ class getNews:
     def __init__(self):
         """생성자 : 기본 url 주소를 받아옴"""
         self.url = var.NEWS_URL
-        # db_url = f'mysql+pymysql://root:{var.PASSWORD}@localhost/Investment_?charset=utf8'
-        # self.engine = create_engine(db_url) 
+        db_url = f'mysql+pymysql://root:{var.PASSWORD}@localhost/Investment_?charset=utf8'
+        self.engine = create_engine(db_url) 
 
     def __del__(self):
         """소멸자 : pass"""
-        # self.engine.dispose()
+        self.engine.dispose()
     
+    def createNewsTable(self):
+        """
+        - ```news table``` 이 Maria DB에 없는 경우, 생성함
+        """
+            
+    def storeNewsDataInDataBase(self, NewsDF):
+        """
+        News data를 MariaDB database에 저장
+        """
+
+
     def getNewsByDate(self, date=None, end_date=None) -> pd.DataFrame: 
         """
         - date : format as '20230901'. then, url = url + '&date={date}'
@@ -129,7 +140,7 @@ class getNews:
         if date == None:
             today = (datetime.today()).strftime('%Y%m%d')
             return today
-        return date   
+        return date
     
     def activate(self, date=0):
         """

@@ -25,11 +25,12 @@ class getNews:
         """
         News data를 MariaDB database에 저장
         """
+        
 
 
     def getNewsByDate(self, date=None, end_date=None) -> pd.DataFrame: 
         """
-        - date : format as '20230901'. then, url = url + '&date={date}'
+        - date : format as ```'20230901'```. then, ```url = url + '&date={date}'```
 
         날짜를 받아와서 해당 날에 대한 finance.naver의 주소 구하고, 크롤링 실행
         """

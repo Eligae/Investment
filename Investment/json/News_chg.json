@@ -1,0 +1,20 @@
+{
+    "name": "News_rid.json",
+    "description": "to get rid of news title which contains political issues",
+    "rid": [
+        "한동훈",
+        "이희진"
+    ],
+    "change": {
+        "↑": "증가",
+        "證": "증권",
+        "▼": "감소",
+        "韓": "한국",
+        "美": "미국",
+        "SM": "에스엠",
+        "株": "주식",
+        "中": "중국",
+        "兆": "조",
+        "前": "전"
+    }
+}

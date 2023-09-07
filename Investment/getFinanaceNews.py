@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-import requests, json
+import requests, json, urllib, os, sys
 import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime, timedelta
@@ -112,16 +112,16 @@ class getNews:
                 }
 
                 try:
-                    with open('exception_news.json', 'r') as json_file: # exception_news.json에 오류 data 저장
+                    with open('json\\exception_news.json', 'r') as json_file: # exception_news.json에 오류 data 저장
                         existing_data = json.load(json_file)
                         existing_data['data'].append(exception_data)
                     
-                    with open('exception_news.json', 'w') as json_file:
+                    with open('json\\exception_news.json', 'w') as json_file:
                         json.dump(existing_data, json_file)
 
                 except FileNotFoundError:       # exception_news.json이 없으면 새로 만들어서 저장
                     existing_data = {'data': [exception_data]}
-                    with open('exception_news.json', 'w') as json_file:
+                    with open('json\\exception_news.json', 'w') as json_file:
                         json.dump(existing_data, json_file)
 
             NewsDF = pd.concat([NewsDF, day_DF], ignore_index=True)
@@ -132,6 +132,55 @@ class getNews:
         print()
         return NewsDF
     
+    def getArticleText(self, url) -> str:
+        response = requests.get(url, headers=var.HEADERS)
+
+        try:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for div in soup.find_all("div",class_="link_news"):
+                div.decompose()
+            news_article = soup.find_all("div", class_="articleCont")
+            if news_article:
+                combined_article_text = ''
+                for article_cont in news_article:
+                    article_text = article_cont.get_text(separator=' ')
+                    combined_article_text += article_text + '\n'
+                return combined_article_text
+            
+        except Exception as e:
+            exception_data = {
+                'url': url,
+                'error_code': str(e)
+            }
+            try:
+                with open('json\\exception_news_text.json', 'r') as json_file: # exception_news.json에 오류 data 저장
+                    existing_data = json.load(json_file)
+                    existing_data['data'].append(exception_data)
+                
+                with open('json\\exception_news_text.json', 'w') as json_file:
+                    json.dump(existing_data, json_file)
+
+            except FileNotFoundError:       # exception_news.json이 없으면 새로 만들어서 저장
+                existing_data = {'data': [exception_data]}
+                with open('json\\exception_news_text.json', 'w') as json_file:
+                    json.dump(existing_data, json_file)
+
+            return None
+
+    
+    def papago(self, article) -> str:
+        """
+        newsDF의 article link를 받으면 영어로 번역해줌
+        """
+        # if article == None:
+        #     return None
+        # with open('json\\config.json', 'r') as json_file:
+        #     config = json.load(json_file)
+        #     len_limit = int(config['text_len_limit'])   # 일일 최대 api 사용량 10,000자
+            
+        
+        
+
     def getridOfTitles(self, df) -> pd.DataFrame:
         """
         From 

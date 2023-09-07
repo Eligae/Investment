@@ -136,13 +136,13 @@ class DBUpdater:
             }
 
             try:
-                with open('exception_data.json', 'r') as json_file:
+                with open('json\\exception_data.json', 'r') as json_file:
                     existing_data = json.load(json_file)
                     existing_data['data'].append(exception_data)
             except FileNotFoundError:
                 existing_data = {'data': [exception_data]}
             
-                with open('exception_data.json', 'w') as json_file:
+                with open('json\\exception_data.json', 'w') as json_file:
                     json.dump(existing_data, json_file)
                 return None
         
@@ -157,7 +157,7 @@ class DBUpdater:
         실행 모두 완료되면, 그에 따라서 exception_data.json에서 값 삭제함.
         """
 
-        # with open('exception_data.json', 'r') as exceptionData:
+        # with open('json\\exception_data.json', 'r') as exceptionData:
             
 
 
@@ -198,12 +198,12 @@ class DBUpdater:
         self.update_comp_info()
         
         try:
-            with open('config.json', 'r') as in_file:
+            with open('json\\config.json', 'r') as in_file:
                 config = json.load(in_file)
                 pages_to_fetch = config['pages_to_fetch']
         
         except FileNotFoundError:
-            with open('config.json', 'w') as out_file:
+            with open('json\\config.json', 'w') as out_file:
                 pages_to_fetch = 100 
                 config = {'pages_to_fetch': 1}
                 json.dump(config, out_file)

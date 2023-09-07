@@ -1,7 +1,5 @@
 /__pycache__/
 /Investment/__pycache__/
 /Investment/output.html
-/Investment/test_auto.py
-/Investment/test_selenium.py
-/Investment/test_auto_xy.py
-/Investment/test_dart_api.py
+/Investment/test_newstext.py
+/Investment/news_data.csv

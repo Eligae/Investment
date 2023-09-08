@@ -4,6 +4,10 @@ import pymysql, calendar, json
 import requests
 from datetime import datetime
 from threading import Timer
+import xml.etree.ElementTree as ET
+import zipfile
+import io
+from pandas import json_normalize
 
 import var
 
@@ -15,7 +19,8 @@ class DBUpdater:
         with self.conn.cursor() as curs:
             sql = """
             CREATE TABLE IF NOT EXISTS company_info (
-                code VARCHAR(20),
+                stock_code VARCHAR(20),
+                corp_code VARCHAR(20), 
                 company VARCHAR(40),
                 last_update DATE,
                 PRIMARY KEY (code))
@@ -23,7 +28,7 @@ class DBUpdater:
             curs.execute(sql)
             sql = """
             CREATE TABLE IF NOT EXISTS daily_price (
-                code VARCHAR(20),
+                stock_code VARCHAR(20),
                 date DATE,
                 open BIGINT(20),
                 high BIGINT(20),
@@ -50,13 +55,64 @@ class DBUpdater:
         krx.code = krx.code.map('{:06d}'.format)
         return krx
     
+    def read_dart_code(self, api_key):
+        """DART에서 API를 이용해 xml파일을 읽어온 후 상장기업 목록 데이터 프레임으로 반환"""
+
+        url = 'https://opendart.fss.or.kr/api/corpCode.xml'
+        params = {'crtfc_key': api_key,}
+
+        r = requests.get(url, params = params)
+        try:
+            tree = ET.XML(r.content)
+            status = tree.find('status').text
+            message = tree.find('message').text
+            if status != '000':
+                raise ValueError({'status': status, 'messgae': message})
+        except ET.ParseError as e:
+            pass
+
+        zf = zipfile.ZipFile(io.BytesIO(r.content))
+        xml_data = zf.read('CORPCODE.xml')
+
+        tree = ET.XML(xml_data)
+        all_records = []
+
+        element = tree.findall('list')
+        for i, child in enumerate(element):
+            record = {}
+            for i, subchild in enumerate(child):
+                record[subchild.tag] = subchild.text
+            all_records.append(record)
+
+        corp_code = pd.DataFrame(all_records)
+
+        return corp_code
+    
+
+    def compare_krx_dart_df(self, krx, dart):
+        """dart stock code - krx stock code, 상장된 기업 중 재무재표만 있는 stock code만 남겨 데이터프레임으로 반환"""
+        dart['stock_code'] = dart['stock_code'].replace(' ', pd.NA)
+        dart = dart.dropna()
+
+        filtered_stock_code = pd.concat([krx['code'], dart['stock_code']]).drop_duplicates()
+
+        filtered_dart = dart[dart['stock_code'].str.contains('|'.join(filtered_stock_code))]
+        filtered_krx = krx[krx['code'].str.contains('|'.join(filtered_stock_code))]
+
+        merge_df = pd.merge(filtered_dart, filtered_krx, left_on = 'stock_code', right_on = 'code', how = 'inner')
+
+        return merge_df
+    
     def update_comp_info(self):
         """종목코드를 company_info 테이블에 업데이트 한 후 딕셔너리에 저장"""
+
+        api_key = 'ede53418cf88e7dd3088078b7406d3faeeeba07b'
+
         sql = "SELECT * FROM company_info"
         df = pd.read_sql(sql, self.conn)
        
         for idx in range(len(df)):
-            self.codes[df['code'].values[idx]] = df['company'].values[idx]
+            self.codes[df['stock_code'].values[idx]] = df['company'].values[idx]
                     
         with self.conn.cursor() as curs:
             sql = "SELECT max(last_update) FROM company_info"
@@ -65,23 +121,29 @@ class DBUpdater:
             today = datetime.today().strftime('%Y-%m-%d')
             
             if rs[0] == None or rs[0].strftime('%Y-%m-%d') < today:
-                krx = self.read_krx_code()
+    
+                dart_df = self.read_dart_code(api_key)
+                krx_df = self.read_krx_code()
+
+                merge_df = self.compare_krx_dart_df(krx_df, dart_df)
+                
             
-                for idx in range(len(krx)):
-                    code = krx.code.values[idx]
-                    company = krx.company.values[idx]                
-                    sql = f"REPLACE INTO company_info (code, company, last_update) VALUES ('{code}', '{company}', '{today}')"
+                for idx in range(len(merge_df)):
+                    stock_code = merge_df.stock_code.values[idx]
+                    corp_code = merge_df.corp_code.values[idx]
+                    company = merge_df.company.values[idx]                
+                    sql = f"REPLACE INTO company_info (stock_code, corp_code, company, last_update) VALUES ('{stock_code}','{corp_code}', '{company}', '{today}')"
                     curs.execute(sql)
             
-                    self.codes[code] = company
+                    self.codes[stock_code] = company
                     tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
-                    print(f"[{tmnow}] #{idx+1:04d} REPLACE INTO company_info VALUES ({code}, {company}, {today})")
+                    print(f"[{tmnow}] #{idx+1:04d} REPLACE INTO company_info VALUES ({stock_code}, {corp_code}, {company}, {today})")
                 self.conn.commit()
                 print('')              
 
-    def read_naver(self, code, company, pages_to_fetch, skip=0):
+    def read_naver(self, stock_code, company, pages_to_fetch, skip=0):
         """네이버에서 주식 시세를 읽어서 데이터프레임으로 반환
-            - code              : 회사 번호 -> finance.naver.com에서 쓰일 값
+            - stock_code        : 회사 번호 -> finance.naver.com에서 쓰일 값
             - company           : 회사 이름 -> terminal에서 표기용
             - pages_to_fetch    : 총 몇 page를 crawling 할 것인가?
             - skip              : 처음 다운받을 경우, 다시 다운받을 때 회사코드값 넣으면 그 전까지 skip함.
@@ -89,14 +151,14 @@ class DBUpdater:
         tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
 
         # 중간에 다운받다가 끊을 경우, read_naver함수의 skip값에 끊기 직전의 회사 코드번호 입력시 전의 data 모두 skip.
-        if int(code) < skip:    
+        if int(stock_code) < skip:    
             print('[{}] {} ({}) :  is skipped..'.
-                    format(tmnow, company, code), end="\n")
+                    format(tmnow, company, stock_code), end="\n")
             return None
         
         try:
             # 23.09.04 기준 '일별시세' 탭 없어짐. 18
-            url = f"https://finance.naver.com/item/sise_day.nhn?code={code}&page=1"
+            url = f"https://finance.naver.com/item/sise_day.nhn?code={stock_code}&page=1"
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
             pgrr = html.find("td", class_="pgRR")
             print(pgrr)
@@ -118,7 +180,7 @@ class DBUpdater:
             
                 
                 print('[{}] {} ({}) : {:04d}/{:04d} pages are downloading...'.
-                    format(tmnow, company, code, page, pages), end="\r")
+                    format(tmnow, company, stock_code, page, pages), end="\r")
                 
             df = df.rename(columns={'날짜':'date', '종가':'close', '전일비':'diff', '시가':'open', '고가':'high', '저가':'low', '거래량':'volume'})
             df['date'] = df['date'].replace('.', '-')
@@ -130,7 +192,7 @@ class DBUpdater:
             print('Exception occured :', str(e))
 
             exception_data = {
-                'code': code,
+                'stock_code': stock_code,
                 'company': company,
                 'pages_to_fetch': pages_to_fetch
             }
@@ -161,11 +223,11 @@ class DBUpdater:
             
 
 
-    def replace_into_db(self, df, num, code, company):
+    def replace_into_db(self, df, num, stock_code, company):
         """네이버에서 읽어온 주식 시세를 DB에 REPLACE"""
         with self.conn.cursor() as curs:
             for r in df.itertuples():
-                sql = f"REPLACE INTO daily_price VALUES ('{code}', "\
+                sql = f"REPLACE INTO daily_price VALUES ('{stock_code}', "\
                     f"'{r.date}', {r.open}, {r.high}, {r.low}, {r.close}, "\
                     f"{r.diff}, {r.volume})"
                 curs.execute(sql)
@@ -175,13 +237,13 @@ class DBUpdater:
 
     def update_daily_price(self, pages_to_fetch):
         """KRX 상장법인의 주식 시세를 네이버로부터 읽어서 DB에 업데이트"""  
-        for idx, code in enumerate(self.codes):
-            df = self.read_naver(code=code, company=self.codes[code], pages_to_fetch=pages_to_fetch)
+        for idx, stock_code in enumerate(self.codes):
+            df = self.read_naver(code=stock_code, company=self.codes[stock_code], pages_to_fetch=pages_to_fetch)
             
             if df is None:
                 continue
             
-            self.replace_into_db(df, idx, code, self.codes[code])     
+            self.replace_into_db(df, idx, stock_code, self.codes[stock_code])     
 
     # def getCompanyItem(self, code)       
     #     url = f'https://finance.naver.com/item/main.naver?code={code}'
@@ -234,5 +296,6 @@ class DBUpdater:
         t.start()
 
 if __name__ == '__main__':
+
     dbu = DBUpdater()
     dbu.execute_daily()

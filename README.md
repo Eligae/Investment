@@ -79,3 +79,15 @@ url = f"http://finance.naver.com/item/sise_day.nhn?code={code}"
 url = f"https://finance.naver.com/item/sise.naver?code={code}"
 ```
 에서 하단의 '일별시세' 탭에서 가져와야 할 듯 한데, javascript로 쓰인 동적 사이트라 크롤링이 쉽지 않을듯. 
+
+# Papago API 
+
+1. 뉴스 제목 Crawling 
+
+2. 간단한 전처리 
+3. 회사와 관련된 내용이면 냅두기
+4. 기사 내용 가져오기
+5. papago api 사용. 영어로 번역(일일 제한 10,000자)
+6. ```nltk sentiment score```로 점수 측정
+7. 일일 값 회사별 평균 or 중간값 등 사용
+8. DB Update

@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-import requests, json, urllib, os, sys
+import requests, json, requests
 import pandas as pd
 from sqlalchemy import create_engine
 from datetime import datetime, timedelta
@@ -25,9 +25,6 @@ class getNews:
         """
         News data를 MariaDB database에 저장
         """
-        
-
-
     def getNewsByDate(self, date=None, end_date=None) -> pd.DataFrame: 
         """
         - date : format as ```'20230901'```. then, ```url = url + '&date={date}'```
@@ -132,7 +129,12 @@ class getNews:
         print()
         return NewsDF
     
-    def getArticleText(self, url) -> str:
+    def getArticleText(self, url) -> str or None:
+        """
+        뉴스 기사를 str 형식으로 찾아서 제공함.
+
+        만약, 오류가 나는 경우, None을 return하여 ```papago``` 의 실행이 되지 않게 함 
+        """
         response = requests.get(url, headers=var.HEADERS)
 
         try:
@@ -145,7 +147,8 @@ class getNews:
                 for article_cont in news_article:
                     article_text = article_cont.get_text(separator=' ')
                     combined_article_text += article_text + '\n'
-                return combined_article_text
+            
+            return combined_article_text
             
         except Exception as e:
             exception_data = {
@@ -168,18 +171,81 @@ class getNews:
             return None
 
     
-    def papago(self, article) -> str:
+    def papagoJsonReset(self) -> json.dump:
         """
-        newsDF의 article link를 받으면 영어로 번역해줌
+        papgo_api.json이 하루마다 초기화되기 때문에, 그 정보를 바탕으로 설정
+
+        매일 한번 번역 사용 전, 실행해주면 됨
         """
-        # if article == None:
-        #     return None
-        # with open('json\\config.json', 'r') as json_file:
-        #     config = json.load(json_file)
-        #     len_limit = int(config['text_len_limit'])   # 일일 최대 api 사용량 10,000자
+        today = datetime.now().date()
+        with open('json\\papago_api.json', 'r') as json_file:
+            papago_api = json.load(json_file)
+            data = papago_api["data"]
+            _appIds = list(data.keys())
+
+            for _appId in _appIds:
+                _appId_date = papago_api["data"][_appId]["Latest_Date"]
+                _appId_date = datetime.strptime(_appId_date, "%Y-%m-%d").date()
+                if today > _appId_date:
+                    papago_api["data"][_appId]["Latest_Date"] = str(today)
+                    papago_api["data"][_appId]["Limit"] = 0
             
+        with open('json\\papago_api.json', 'w') as json_file:
+            json.dump(papago_api, json_file, indent=4)
+
+        print('papago_api.json Reset Ok')
+
+    def getPapagoAPIKey(self, article) -> (json.dump and str) or None:
+        """
+        article의 길이에 맞는 적절한 api key 받아옴.
+
+        이후, ```usePapagoAPI```를 호출하여 번역 작업 실행 후 그에 해당하는 값 받아옴
+
+        마지막으로, papago_api.json의 limit 값 반영하여 저장함.
+        """
+        article_len = len(str(article))
+        if article_len < 10:
+            return None         # might be None(len: 4) or wrong msg.
+        with open('json\\papago_api.json', 'r') as json_file:
+            papago_api = json.load(json_file)
+            data = papago_api["data"]
+            _appIds = list(data.keys())
+
+            for _appId in _appIds:
+                limit = papago_api["data"][_appId]["Limit"]
+
+                if limit > article_len:
+                    client_id = papago_api["data"][_appId]["Client_ID"]
+                    client_secret = papago_api["data"][_appId]["Client_Secret"]
+                    break
+
+        translated_text = self.usePapagoAPI(article, client_id, client_secret)
         
+        if translated_text is not None:
+            papago_api["data"][_appId]["Limit"] += article_len
+            with open('json\\papago_api.json', 'w') as json_file:
+                json.dump(papago_api, json_file, indent=4)
+
+        return translated_text
+
+
+    def usePapagoAPI(self, article, client_id, client_secret) -> str:
+        """
+        article을 받으면 papago api를 호출하여 번역 실행. 
         
+        번역된 텍스트를 전달함
+        """
+        headers = {
+            'Content-Type': 'application/json',
+            'X-Naver-Client-Id': client_id,
+            'X-Naver-Client-Secret': client_secret
+        }
+        data = {'source': 'ko', 'target': 'en', 'text': article}
+        response = requests.post(var.PAPAGO_URL, json.dumps(data), headers=headers)
+        if response == 200:
+            en_text = response.json()["message"]["result"]["translatedText"]
+            return en_text
+        return None
 
     def getridOfTitles(self, df) -> pd.DataFrame:
         """
@@ -213,4 +279,4 @@ class getNews:
         
 if __name__ == "__main__":
     getNewsActivate = getNews()
-    getNewsActivate.getNewsByDate(date=None)
+    getNewsActivate.papagoJsonReset()

@@ -4,7 +4,7 @@ import pymysql, calendar, json
 import requests
 from datetime import datetime
 from threading import Timer
-
+from io import StringIO
 import var
 
 class DBUpdater:  
@@ -44,7 +44,7 @@ class DBUpdater:
     def read_krx_code(self):
         """KRX로부터 상장기업 목록 파일을 읽어와서 데이터프레임으로 반환"""
         url = 'http://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13'
-        krx = pd.read_html(url, header=0)[0]
+        krx = pd.read_html(url, header=0, encoding='cp949')[0]
         krx = krx[['종목코드', '회사명']]
         krx = krx.rename(columns={'종목코드': 'code', '회사명': 'company'})
         krx.code = krx.code.map('{:06d}'.format)
@@ -99,7 +99,6 @@ class DBUpdater:
             url = f"https://finance.naver.com/item/sise_day.nhn?code={code}&page=1"
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
             pgrr = html.find("td", class_="pgRR")
-            print(pgrr)
             if pgrr is None:
                 return None
                 
@@ -111,9 +110,10 @@ class DBUpdater:
             # [주의] : 처음 Database 다운받을 경우. 정말 오래걸리니 잘때 하는 것을 추천함.
             for page in range(1, pages + 1):
                 pg_url = '{}&page={}'.format(url, page)
+                html_data = requests.get(pg_url, headers=var.HEADERS).text
+                html_data_io = StringIO(html_data)
+                new_data = pd.read_html(html_data_io)[0]
 
-                new_data = pd.read_html(requests.get(pg_url,
-                    headers={'User-agent': 'Mozilla/5.0'}).text)[0]
                 df = pd.concat([df, new_data], ignore_index=True)
             
                 

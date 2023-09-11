@@ -6,21 +6,21 @@
             "Client_ID": "8GSVTCh464DHPsyDgRn8",
             "Client_Secret": "OGbqB2lGQl",
             "Limit": 0,
-            "Latest_Date": "2023-09-10",
+            "Latest_Date": "2023-09-11",
             "OpenAPIEnv": "https://github.com/Eligae?tab=repositories"
         },
         "news_text": {
             "Client_ID": "S8KMtmjGyiotOw396Tlu",
             "Client_Secret": "C6Zp2H8xk4",
             "Limit": 0,
-            "Latest_Date": "2023-09-10",
+            "Latest_Date": "2023-09-11",
             "OpenAPIEnv": "file://localhost:8000"
         },
         "news_text_2": {
             "Client_ID": "_DCXsN1YEqGlAJug4K0f",
             "Client_Secret": "eMr4NDXI2Z",
             "Limit": 0,
-            "Latest_Date": "2023-09-10",
+            "Latest_Date": "2023-09-11",
             "OpenAPIEnv": "file://localhost:8001"
         }
     }

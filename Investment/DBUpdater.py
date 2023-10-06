@@ -136,15 +136,15 @@ class DBUpdater:
             }
 
             try:
-                with open('json\\exception_data.json', 'r') as json_file:
+                with open('json\\exception_data.json', 'r', encoding='utf-8') as json_file:
                     existing_data = json.load(json_file)
                     existing_data['data'].append(exception_data)
             except FileNotFoundError:
                 existing_data = {'data': [exception_data]}
             
-                with open('json\\exception_data.json', 'w') as json_file:
-                    json.dump(existing_data, json_file)
-                return None
+            with open('json\\exception_data.json', 'w', encoding='utf-8') as json_file:
+                json.dump(existing_data, json_file)
+            return None
         
         return df
     

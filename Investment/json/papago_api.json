@@ -1,6 +1,6 @@
 {
     "description": "to check each naver development application daily limit(length of texts) of using papago api. Can get your own API Key at : https://developers.naver.com/apps/#/register",
-    "actual_limit": "data -> <application name> -> Limit <= 10000",
+    "actual_limit": "[data].[{application name}].[Limit] <= 10000",
     "data": {
         "NewsReader": {
             "Client_ID": "8GSVTCh464DHPsyDgRn8",

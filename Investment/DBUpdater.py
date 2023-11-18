@@ -5,6 +5,7 @@ import requests
 from datetime import datetime
 from threading import Timer
 from io import StringIO
+
 import var
 
 class DBUpdater:  
@@ -65,7 +66,7 @@ class DBUpdater:
             today = datetime.today().strftime('%Y-%m-%d')
             
             if rs[0] == None or rs[0].strftime('%Y-%m-%d') < today:
-                krx = self.read_krx_code()
+                krx = self.read_krx_code()  
             
                 for idx in range(len(krx)):
                     code = krx.code.values[idx]
@@ -77,7 +78,7 @@ class DBUpdater:
                     tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
                     print(f"[{tmnow}] #{idx+1:04d} REPLACE INTO company_info VALUES ({code}, {company}, {today})")
                 self.conn.commit()
-                print('')              
+                print('')     
 
     def read_naver(self, code, company, pages_to_fetch, skip=0):
         """네이버에서 주식 시세를 읽어서 데이터프레임으로 반환
@@ -95,7 +96,6 @@ class DBUpdater:
             return None
         
         try:
-            # 23.09.04 기준 '일별시세' 탭 없어짐. 18
             url = f"https://finance.naver.com/item/sise_day.nhn?code={code}&page=1"
             html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
             pgrr = html.find("td", class_="pgRR")
@@ -148,16 +148,16 @@ class DBUpdater:
         
         return df
     
-    def naver_error_reDownload(self):
-        """
-        read_naver에서 오류난 부분을 'exception_data.json'에 저장하는데, 
+    # def naver_error_reDownload(self):
+    #     """
+    #     read_naver에서 오류난 부분을 'exception_data.json'에 저장하는데, 
         
-        그 부분에 해당하는 것만 다시 실행하는 과정.
+    #     그 부분에 해당하는 것만 다시 실행하는 과정.
         
-        실행 모두 완료되면, 그에 따라서 exception_data.json에서 값 삭제함.
-        """
+    #     실행 모두 완료되면, 그에 따라서 exception_data.json에서 값 삭제함.
+    #     """
 
-        # with open('json\\exception_data.json', 'r') as exceptionData:
+    #     # with open('json\\exception_data.json', 'r') as exceptionData:
             
 
 
@@ -181,17 +181,7 @@ class DBUpdater:
             if df is None:
                 continue
             
-            self.replace_into_db(df, idx, code, self.codes[code])     
-
-    # def getCompanyItem(self, code)       
-    #     url = f'https://finance.naver.com/item/main.naver?code={code}'
-    #     tmnow = datetime.now().strftime('%Y-%m-%d %H:%M')
-
-    #     try:
-    #         html = BeautifulSoup(requests.get(url, headers={'User-agent': 'Mozilla/5.0'}).text, "lxml")
-    #         item = html.find("")
-
-
+            self.replace_into_db(df, idx, code, self.codes[code])    
 
     def execute_daily(self):
         """실행 즉시 및 매일 오후 다섯시에 daily_price 테이블 업데이트"""

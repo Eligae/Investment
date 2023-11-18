@@ -4,7 +4,6 @@ import re
 from sqlalchemy import create_engine
 from Investment import var
 
-
 class MarketDB:
     def __init__(self):
         """생성자: MariaDB 연결 및 종목코드 딕셔너리 생성"""
@@ -35,7 +34,7 @@ class MarketDB:
             start_date = one_year_ago.strftime('%Y-%m-%d')
             print("start_date is initialized to '{}'".format(start_date))
         else:
-            start_lst = re.split('\D+', start_date)
+            start_lst = re.split(r'\D+', start_date)
             if start_lst[0] == '':
                 start_lst = start_lst[1:]
             start_year = int(start_lst[0])
@@ -56,7 +55,7 @@ class MarketDB:
             end_date = datetime.today().strftime('%Y-%m-%d')
             print("end_date is initialized to '{}'".format(end_date))
         else:
-            end_lst = re.split('\D+', end_date)
+            end_lst = re.split(r'\D+', end_date)
             if end_lst[0] == '':
                 end_lst = end_lst[1:] 
             end_year = int(end_lst[0])
@@ -88,3 +87,8 @@ class MarketDB:
         df = pd.read_sql(sql, self.engine)
         df.index = df['date']
         return df 
+    
+    def comp_codes(self)->list:
+        """db에 저장된 회사명들을 list 형식으로 반환."""
+        return list(self.codes.values())
+    
